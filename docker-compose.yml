@@ -1,0 +1,29 @@
+services:
+  # Servicio del backend
+  movies_reservation:
+    build:
+      context: .
+      dockerfile: Dockerfile.movies_reservation 
+    container_name: movies_reservation_backend
+    ports:
+      - "51002:51002"
+    environment:
+      SERVICE_NAME: ${SERVICE_NAME}
+      K_REVISION: ${K_REVISION}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES}
+      JWT_COOKIE_NAME: ${JWT_COOKIE_NAME}
+      JWT_REFRESH_COOKIE_NAME: ${JWT_REFRESH_COOKIE_NAME}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE}
+      JWT_COOKIE_SAMESITE: ${JWT_COOKIE_SAMESITE}
+      CSRF_COOKIE_NAME: ${CSRF_COOKIE_NAME}
+      CSRF_HEADER_NAME: ${CSRF_HEADER_NAME}
+      CSRF_SAFE_METHODS: ${CSRF_SAFE_METHODS}
+      CSRF_COOKIE_EXPIRE_MINUTES: ${CSRF_COOKIE_EXPIRE_MINUTES}
