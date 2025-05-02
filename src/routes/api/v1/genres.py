@@ -6,6 +6,7 @@ from src.config.db_config import get_db
 from src.config.config import get_settings
 from src.utils.logger import setup_logger
 from src.models.user_model import User
+from src.security.dependencies import get_current_user
 from src.security.dependencies import get_current_admin_user
 from src.services.genre_service import GenreService
 from src.schema.requests.genre_request import GenreCreateRequest, GenreUpdateRequest
@@ -18,13 +19,10 @@ from src.schema.examples.genre_example import (
     genre_delete_examples
 )
 
-# Logger setup
 _SETTINGS = get_settings()
 logger = setup_logger(__name__, level=_SETTINGS.log_level)
 
 router = APIRouter(prefix="/genres")
-
-# ✅ Instancia de servicio
 genre_service = GenreService()
 
 # GET /genres
@@ -35,7 +33,10 @@ genre_service = GenreService()
     responses=genre_list_examples,
     tags=["Genres"]
 )
-async def list_genres(session: AsyncSession = Depends(get_db)):
+async def list_genres(
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
     logger.info("📚 Listando todos los géneros")
     return await genre_service.get_all_genres(session)
 
@@ -47,7 +48,11 @@ async def list_genres(session: AsyncSession = Depends(get_db)):
     responses=genre_detail_examples,
     tags=["Genres"]
 )
-async def get_genre_detail(genre_id: int, session: AsyncSession = Depends(get_db)):
+async def get_genre_detail(
+    genre_id: int, 
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
     logger.info(f"🔎 Obteniendo género ID {genre_id}")
     return await genre_service.get_genre_by_id(genre_id, session)
 
@@ -62,6 +67,7 @@ async def get_genre_detail(genre_id: int, session: AsyncSession = Depends(get_db
 async def create_genre(
     genre: GenreCreateRequest,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
     admin_user: User = Depends(get_current_admin_user)
 ):
     logger.info(f"🆕 Creando nuevo género: {genre.name}")
@@ -78,6 +84,7 @@ async def update_genre(
     genre_id: int,
     genre_data: GenreUpdateRequest,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
     admin_user: User = Depends(get_current_admin_user)
 ):
     logger.info(f"✏️ Actualizando género ID {genre_id}")
@@ -93,6 +100,7 @@ async def update_genre(
 async def delete_genre(
     genre_id: int,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
     admin_user: User = Depends(get_current_admin_user)
 ):
     logger.warning(f"🗑️ Eliminando género ID {genre_id}")
