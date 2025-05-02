@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-
 from src.config.db_config import get_db
 from src.config.config import get_settings
 from src.utils.logger import setup_logger
@@ -18,11 +17,10 @@ from src.schema.examples.movie_example import (
     movie_delete_examples
 )
 
-# Configuración y logger
 _SETTINGS = get_settings()
 logger = setup_logger(__name__, level=_SETTINGS.log_level)
 
-router = APIRouter(prefix="/movies")
+router = APIRouter(prefix="/movies", tags=["Movies"])
 movie_service = MovieService()
 
 # GET /movies
@@ -31,10 +29,12 @@ movie_service = MovieService()
     response_model=List[MovieResponse],
     status_code=200,
     responses=movie_list_examples,
-    tags=["Movies"]
 )
-async def list_movies(session: AsyncSession = Depends(get_db)):
-    logger.info("🎬 Listando todas las películas")
+async def list_movies(
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    logger.info(f"📽️ Usuario {user.email} solicitó la lista de películas")
     return await movie_service.get_all_movies(session)
 
 # GET /movies/{id}
@@ -43,10 +43,13 @@ async def list_movies(session: AsyncSession = Depends(get_db)):
     response_model=MovieWithShowtimesResponse,
     status_code=200,
     responses=movie_detail_examples,
-    tags=["Movies"]
 )
-async def get_movie_detail(movie_id: int, session: AsyncSession = Depends(get_db)):
-    logger.info(f"🎞️ Obteniendo detalle de película {movie_id}")
+async def get_movie_detail(
+    movie_id: int,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    logger.info(f"🔍 Usuario {user.email} solicitó el detalle de la película ID {movie_id}")
     return await movie_service.get_movie_by_id(movie_id, session)
 
 # POST /movies
@@ -60,9 +63,10 @@ async def get_movie_detail(movie_id: int, session: AsyncSession = Depends(get_db
 async def create_new_movie(
     movie: MovieCreateRequest,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
     admin_user: User = Depends(get_current_admin_user)
 ):
-    logger.info(f"➕ Creando película: {movie.title}")
+    logger.info(f"🎬 Admin {admin_user.email} está creando la película: {movie.title}")
     return await movie_service.create_movie(movie, session, admin_user)
 
 # PUT /movies/{id}
@@ -76,9 +80,10 @@ async def update_movie_detail(
     movie_id: int,
     movie_data: MovieUpdateRequest,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
     admin_user: User = Depends(get_current_admin_user)
 ):
-    logger.info(f"✏️ Actualizando película ID {movie_id}")
+    logger.info(f"✏️ Admin {admin_user.email} está actualizando la película ID {movie_id}")
     return await movie_service.update_movie(movie_id, movie_data, session, admin_user)
 
 # DELETE /movies/{id}
@@ -91,9 +96,10 @@ async def update_movie_detail(
 async def delete_movie_by_id(
     movie_id: int,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
     admin_user: User = Depends(get_current_admin_user)
 ):
-    logger.warning(f"❌ Eliminando película ID {movie_id}")
+    logger.warning(f"🗑️ Admin {admin_user.email} está eliminando la película ID {movie_id}")
     await movie_service.delete_movie(movie_id, session, admin_user)
     return
 
@@ -101,12 +107,12 @@ async def delete_movie_by_id(
 @router.get(
     "/by-genre/{genre_id}",
     response_model=List[MovieResponse],
-    status_code=200,
-    tags=["Movies"]
+    status_code=200
 )
 async def list_movies_by_genre(
     genre_id: int,
-    session: AsyncSession = Depends(get_db)
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
 ):
-    logger.info(f"🎯 Buscando películas por género ID {genre_id}")
+    logger.info(f"🎯 Usuario {user.email} está filtrando películas por género ID {genre_id}")
     return await movie_service.get_movies_by_genre(genre_id, session)

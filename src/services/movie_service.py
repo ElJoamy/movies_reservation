@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from sqlalchemy.orm import joinedload
 from fastapi import HTTPException, status
+from datetime import datetime
 
 from src.models.movie_model import Movie
 from src.models.genre_model import Genre
@@ -42,7 +43,12 @@ class MovieService:
         return movies
 
     async def get_movie_by_id(self, movie_id: int, session: AsyncSession):
-        logger.debug(f"🔍 Buscando detalle de película ID {movie_id}")
+        if movie_id <= 0:
+            logger.warning("🚫 ID inválido para película")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid movie ID provided."
+            )
         result = await session.execute(
             select(Movie).where(Movie.id == movie_id).options(
                 joinedload(Movie.genres),
@@ -61,15 +67,40 @@ class MovieService:
 
     async def create_movie(self, data: MovieCreateRequest, session: AsyncSession, user: User):
         self.verify_admin(user)
+
+        if not data.title.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Title cannot be empty."
+            )
+
+        if data.duration_minutes is not None and data.duration_minutes <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Duration must be a positive integer."
+            )
+
+        if data.year is not None and (data.year < 1888 or data.year > datetime.now().year + 1):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Year must be between 1888 and next year."
+            )
+
+        if not data.genre_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="At least one genre must be provided."
+            )
+
         logger.info(f"➕ Creando película: {data.title}")
 
         movie = Movie(
-            title=data.title,
-            description=data.description,
-            poster_url=data.poster_url,
+            title=data.title.strip(),
+            description=data.description.strip() if data.description else None,
+            poster_url=data.poster_url.strip() if data.poster_url else None,
             year=data.year,
             duration_minutes=data.duration_minutes,
-            director=data.director
+            director=data.director.strip() if data.director else None
         )
 
         session.add(movie)
@@ -92,13 +123,31 @@ class MovieService:
 
     async def update_movie(self, movie_id: int, data: MovieUpdateRequest, session: AsyncSession, user: User):
         self.verify_admin(user)
+        movie = await self.get_movie_by_id(movie_id, session)
+
         logger.info(f"✏️ Actualizando película ID {movie_id}")
 
-        movie = await self.get_movie_by_id(movie_id, session)
+        if data.title is not None and not data.title.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Title cannot be empty."
+            )
+
+        if data.duration_minutes is not None and data.duration_minutes <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Duration must be a positive integer."
+            )
+
+        if data.year is not None and (data.year < 1888 or data.year > datetime.now().year + 1):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Year must be between 1888 and next year."
+            )
 
         for field, value in data.dict(exclude_unset=True).items():
             if field != "genre_ids":
-                setattr(movie, field, value)
+                setattr(movie, field, value.strip() if isinstance(value, str) else value)
 
         if data.genre_ids is not None:
             await session.execute(delete(MovieGenre).where(MovieGenre.movie_id == movie.id))
@@ -126,6 +175,12 @@ class MovieService:
         await session.commit()
 
     async def get_movies_by_genre(self, genre_id: int, session: AsyncSession):
+        if genre_id <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid genre ID provided."
+            )
+
         stmt = (
             select(Movie)
             .join(Movie.genres)

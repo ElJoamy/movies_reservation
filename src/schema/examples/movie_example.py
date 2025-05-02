@@ -1,4 +1,3 @@
-# POST /movies
 movie_create_examples = {
     201: {
         "description": "Película creada exitosamente",
@@ -21,30 +20,35 @@ movie_create_examples = {
         }
     },
     400: {
-        "description": "Género no válido o faltante",
+        "description": "Género no válido",
         "content": {
             "application/json": {
                 "example": {
-                    "detail": "One or more genre IDs are invalid."
+                    "detail": "Genre with ID 99 not found."
                 }
             }
         }
     },
     422: {
-        "description": "Error de validación en los datos enviados",
+        "description": "Error de validación",
         "content": {
             "application/json": {
                 "example": {
                     "detail": [
                         {
-                            "loc": ["body", "poster_url"],
-                            "msg": "URL scheme not permitted",
-                            "type": "value_error.url.scheme"
+                            "loc": ["body", "title"],
+                            "msg": "Title cannot be empty.",
+                            "type": "value_error"
+                        },
+                        {
+                            "loc": ["body", "duration_minutes"],
+                            "msg": "Duration must be a positive integer.",
+                            "type": "value_error"
                         },
                         {
                             "loc": ["body", "year"],
-                            "msg": "ensure this value is less than or equal to 2100",
-                            "type": "value_error.number.not_le"
+                            "msg": "Year must be between 1888 and next year.",
+                            "type": "value_error"
                         }
                     ]
                 }
@@ -53,7 +57,6 @@ movie_create_examples = {
     }
 }
 
-# GET /movies/{id}
 movie_detail_examples = {
     200: {
         "description": "Detalle de película",
@@ -87,7 +90,6 @@ movie_detail_examples = {
     }
 }
 
-# GET /movies
 movie_list_examples = {
     200: {
         "description": "Lista de películas",
@@ -124,7 +126,6 @@ movie_list_examples = {
     }
 }
 
-# PUT /movies/{id}
 movie_update_examples = {
     200: {
         "description": "Película actualizada exitosamente",
@@ -133,7 +134,11 @@ movie_update_examples = {
                 "example": {
                     "id": 1,
                     "title": "Inception (Updated)",
+                    "description": "Updated description",
+                    "poster_url": "https://example.com/inception-updated.jpg",
+                    "year": 2010,
                     "duration_minutes": 150,
+                    "director": "Christopher Nolan",
                     "genres": [
                         {"id": 1, "name": "Sci-Fi"},
                         {"id": 2, "name": "Action"}
@@ -142,8 +147,18 @@ movie_update_examples = {
             }
         }
     },
+    400: {
+        "description": "Género no válido",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Genre with ID 42 not found."
+                }
+            }
+        }
+    },
     404: {
-        "description": "Película no encontrada para actualizar",
+        "description": "Película no encontrada",
         "content": {
             "application/json": {
                 "example": {
@@ -151,21 +166,31 @@ movie_update_examples = {
                 }
             }
         }
+    },
+    422: {
+        "description": "Error de validación",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": [
+                        {
+                            "loc": ["body", "duration_minutes"],
+                            "msg": "Duration must be a positive integer.",
+                            "type": "value_error"
+                        }
+                    ]
+                }
+            }
+        }
     }
 }
 
-# DELETE /movies/{id}
 movie_delete_examples = {
     204: {
-        "description": "Película eliminada exitosamente",
-        "content": {
-            "application/json": {
-                "example": {}
-            }
-        }
+        "description": "Película eliminada exitosamente"
     },
     404: {
-        "description": "Película no encontrada para eliminar",
+        "description": "Película no encontrada",
         "content": {
             "application/json": {
                 "example": {
